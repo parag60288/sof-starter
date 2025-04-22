@@ -22,19 +22,19 @@ const PatientDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<ErrorState | null>(null);
   const [launchContext, setLaunchContext] = useState<any>(null);
-  
+
   // Ref to track if the component is mounted
   const isMounted = useRef(true);
-  
+
   useEffect(() => {
     setError(null);
     // Set mounted flag
     isMounted.current = true;
-    
+
     const loadPatientData = async () => {
       try {
         console.log('Loading patient dashboard data...');
-        
+
         // Check if authenticated
         const isAuth = await FHIRService.isAuthenticated();
         if (!isAuth) {
@@ -44,7 +44,7 @@ const PatientDashboard: React.FC = () => {
         }
 
         console.log('Successfully authenticated, retrieving launch context');
-        
+
         // Try to get launch context
         try {
           const context = FHIRService.getLaunchContext();
@@ -57,12 +57,12 @@ const PatientDashboard: React.FC = () => {
         // Get patient data
         try {
           const patientData = await FHIRService.getPatient();
-          
+
           // Extract patient info safely
           const givenName = patientData.name?.[0]?.given?.join(' ') || '';
           const familyName = patientData.name?.[0]?.family || '';
           const patientName = givenName + (givenName && familyName ? ' ' : '') + familyName;
-          
+
           if (isMounted.current) {
             setPatient({
               name: patientName || 'Unknown Patient',
@@ -104,7 +104,7 @@ const PatientDashboard: React.FC = () => {
 
       } catch (error) {
         console.error('Error loading patient data:', error);
-        
+
         if (error instanceof FHIRError) {
           if (isMounted.current) {
             setError({
@@ -126,7 +126,7 @@ const PatientDashboard: React.FC = () => {
     };
 
     loadPatientData();
-    
+
     // Cleanup function
     return () => {
       // Mark component as unmounted
@@ -171,11 +171,15 @@ const PatientDashboard: React.FC = () => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Patient Dashboard</h1>
-        <button className="logout-button" onClick={handleLogout}>Logout</button>
+        <h1 style={{ fontSize: '2rem' }}>Patient Dashboard</h1>
+        <p style={{ textAlign: 'left' }}>
+          {launchContext.smart.epicUserId && <><span>&#128100; {launchContext.smart.epicUserId}</span><br /></>}
+          <span style={{fontSize: '0.95rem'}} title="Request initiated at:">&#9200; {new Date(Date.now() - 10000).toLocaleString()}</span>
+        </p>
+        {/* <button className="logout-button" onClick={handleLogout}>Logout</button> */}
       </div>
 
-      { /* launchContext && (
+      { /** * launchContext && (
         <div className="launch-context">
           <h3>Launch Context</h3>
           <div className="context-details">
@@ -190,7 +194,7 @@ const PatientDashboard: React.FC = () => {
             )}
           </div>
         </div>
-      ) */ }
+      ) /** */ }
 
       {patient && (
         <div className="patient-info">
@@ -211,7 +215,7 @@ const PatientDashboard: React.FC = () => {
               {conditions.map((condition, index) => (
                 <li key={index}>
                   {condition.resource?.code?.coding?.[0]?.display || 'Unknown Condition'}
-                  {condition.resource?.clinicalStatus?.coding?.[0]?.code === 'active' && 
+                  {condition.resource?.clinicalStatus?.coding?.[0]?.code === 'active' &&
                     <span className="active-status"> (Active)</span>
                   }
                 </li>
@@ -228,9 +232,9 @@ const PatientDashboard: React.FC = () => {
             <ul className="text-light">
               {medications.map((medication, index) => (
                 <li key={index}>
-                  {medication.resource?.medicationCodeableConcept?.coding?.[0]?.display || 
-                   medication.resource?.medicationReference?.display ||
-                   'Unknown Medication'}
+                  {medication.resource?.medicationCodeableConcept?.coding?.[0]?.display ||
+                    medication.resource?.medicationReference?.display ||
+                    'Unknown Medication'}
                 </li>
               ))}
             </ul>
