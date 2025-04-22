@@ -1,6 +1,28 @@
 import FHIR from 'fhirclient';
 import Client from 'fhirclient/lib/Client';
 import { v4 as uuidv4 } from 'uuid';
+import ehrCredentials from '../configs/ehrCredentials.config.json';
+
+// Define types for EHR credentials
+interface EhrCredential {
+  clientId: string;
+  clientSecret: string;
+  scope: string;
+  redirectUri: string;
+  iss: string;
+}
+
+// Define types for FHIR client state
+interface FhirClientState {
+  serverUrl: string;
+  tokenResponse: {
+    access_token: string;
+    token_type: 'bearer' | 'Bearer';
+    expires_in: number;
+    scope: string;
+    launch_response?: Record<string, unknown>;
+  };
+}
 
 // Generate a unique state key for this session
 const sessionStateKey = uuidv4();
@@ -18,19 +40,32 @@ const apiCallTracker = {
   authProcessed: false
 };
 
-// TODO: fetch EHR credentials dynamically using apptoken passed through launch endpoint
-
 // Debounce time in milliseconds to prevent duplicate calls
 const DEBOUNCE_TIME = 300;
 
+// Interface for error display
+interface ErrorDisplay {
+  showError: (message: string) => void;
+}
+
+// Get EHR credentials based on apptoken
+const getEhrCredentials = (apptoken: string | null): EhrCredential => {
+  if (!apptoken) {
+    const error = new FHIRError(
+      'Apptoken is required for EHR authentication',
+      FHIRErrorType.AUTH_ERROR
+    );
+    // Display error on screen
+    const fhirService = FHIRService.getInstance();
+    fhirService.displayError(error.message);
+    throw error;
+  }
+  return (ehrCredentials.credentials as Record<string, EhrCredential>)[apptoken] || ehrCredentials.credentials.default;
+};
+
 // Base SMART on FHIR app configuration from environment variables
-const FHIR_BASE_CONFIG = {
-  clientId: import.meta.env.VITE_FHIR_CLIENT_ID || 'your-client-id',
-  clientSecret: import.meta.env.VITE_FHIR_CLIENT_SECRET || '',
-  scope: import.meta.env.VITE_FHIR_SCOPE || 'launch/patient patient/*.read',
-  redirectUri: import.meta.env.VITE_FHIR_REDIRECT_URI || window.location.origin + '/launch-callback',
-  iss: import.meta.env.VITE_FHIR_ISS || 'https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4',
-  // We'll set stateKey dynamically in the authorize method
+const getFhirBaseConfig = (apptoken: string | null): EhrCredential => {
+  return getEhrCredentials(apptoken);
 };
 
 // Error types for better handling
@@ -42,16 +77,15 @@ export enum FHIRErrorType {
   UNKNOWN_ERROR = 'Unknown Error'
 }
 
-// Custom FHIR error class
+// Custom error class for FHIR-related errors
 export class FHIRError extends Error {
-  type: FHIRErrorType;
-  originalError?: any;
-
-  constructor(message: string, type: FHIRErrorType, originalError?: any) {
+  constructor(
+    message: string,
+    public type: FHIRErrorType,
+    public originalError?: unknown
+  ) {
     super(message);
     this.name = 'FHIRError';
-    this.type = type;
-    this.originalError = originalError;
   }
 }
 
@@ -61,9 +95,69 @@ export interface LaunchParams {
   launch?: string;
 }
 
+// Interface for launch context
+interface LaunchContext {
+  smart: FhirClientState['tokenResponse'];
+  patient?: string;
+  encounter?: string;
+  user?: string;
+  launchResponse?: Record<string, unknown>;
+}
+
+// Interface for patient data
+interface PatientData {
+  id: string;
+  name: string;
+  gender?: string;
+  birthDate?: string;
+}
+
+// Interface for error state
+interface ErrorState {
+  message: string;
+  type: FHIRErrorType;
+}
+
 class FHIRService {
+  private static instance: FHIRService | null = null;
   private client: Client | null = null;
   private currentStateKey: string = sessionStateKey;
+  private currentAppToken: string | null = null;
+  private errorDisplay: ErrorDisplay | null = null;
+
+  private constructor() {}
+
+  /**
+   * Get the singleton instance of FHIRService
+   */
+  public static getInstance(): FHIRService {
+    if (!FHIRService.instance) {
+      FHIRService.instance = new FHIRService();
+    }
+    return FHIRService.instance;
+  }
+
+  /**
+   * Set the error display handler
+   * @param display The error display implementation
+   */
+  public setErrorDisplay(display: ErrorDisplay): void {
+    this.errorDisplay = display;
+  }
+
+  /**
+   * Display an error message
+   * @param message The error message to display
+   */
+  public displayError(message: string): void {
+    if (this.errorDisplay) {
+      this.errorDisplay.showError(message);
+    } else {
+      console.error('Error display not configured:', message);
+      // Fallback to alert if no error display is configured
+      // alert(message);
+    }
+  }
 
   /**
    * Initialize the FHIR client and begin authorization flow
@@ -82,20 +176,25 @@ class FHIRService {
       // Store the state key for this session - we'll need it during the callback
       localStorage.setItem('fhir_state_key', this.currentStateKey);
       
+      // Get apptoken from URL if present
+      const urlParams = new URLSearchParams(window.location.search);
+      this.currentAppToken = urlParams.get('apptoken');
+      
       // Merge base config with any supplied launch parameters
       const clientConfig = {
-        ...FHIR_BASE_CONFIG,
+        ...getFhirBaseConfig(this.currentAppToken),
         ...(launchParams || {}),
         stateKey: this.currentStateKey
       };
 
       console.log(`Authorizing with state key: ${this.currentStateKey}`);
+      console.log(`Using apptoken: ${this.currentAppToken || 'default'}`);
       console.log(`Full config: ${JSON.stringify(clientConfig)}`);
 
       // Log the launch config for debugging
       if (launchParams?.launch) {
         console.log(`Authorizing with launch token: ${launchParams.launch}`);
-        console.log(`Authorization server: ${launchParams.iss || FHIR_BASE_CONFIG.iss}`);
+        console.log(`Authorization server: ${launchParams.iss || getFhirBaseConfig(this.currentAppToken).iss}`);
       }
 
       const result = await FHIR.oauth2.authorize(clientConfig);
@@ -107,11 +206,80 @@ class FHIRService {
         );
       }
       this.client = result;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('FHIR authorization error:', error);
+      const errorMessage = error instanceof FHIRError ? error.message : 'Failed to authorize with FHIR server';
+      this.displayError(errorMessage);
       throw new FHIRError(
-        'Failed to authorize with FHIR server', 
+        errorMessage,
         FHIRErrorType.AUTH_ERROR, 
+        error
+      );
+    }
+  }
+
+  /**
+   * Get the launch context information
+   * Available only after successful authentication with a launch token
+   */
+  getLaunchContext(): LaunchContext {
+    if (!this.client) {
+      throw new FHIRError(
+        'FHIR client not initialized', 
+        FHIRErrorType.NOT_INITIALIZED
+      );
+    }
+    
+    try {
+      // Basic context information
+      const context: LaunchContext = {
+        smart: {
+          access_token: this.client.state.tokenResponse?.access_token || '',
+          token_type: this.client.state.tokenResponse?.token_type as 'bearer' | 'Bearer' || 'bearer',
+          expires_in: this.client.state.tokenResponse?.expires_in || 0,
+          scope: this.client.state.tokenResponse?.scope || '',
+          launch_response: this.client.state.tokenResponse?.launch_response
+        }
+      };
+      
+      // Try to get patient context if available
+      try {
+        if (this.client.patient?.id) {
+          context.patient = this.client.patient.id;
+        }
+      } catch (error: unknown) {
+        console.warn('Patient context not available:', error);
+      }
+      
+      // Try to get encounter context if available
+      try {
+        if (this.client.encounter?.id) {
+          context.encounter = this.client.encounter.id;
+        }
+      } catch (error: unknown) {
+        console.warn('Encounter context not available:', error);
+      }
+      
+      // Try to get user context if available
+      try {
+        if (this.client.user?.id) {
+          context.user = this.client.user.id;
+        }
+      } catch (error: unknown) {
+        console.warn('User context not available:', error);
+      }
+      
+      // Access any custom context properties that might be available
+      if (this.client.state.tokenResponse?.launch_response) {
+        context.launchResponse = this.client.state.tokenResponse.launch_response;
+      }
+      
+      return context;
+    } catch (error: unknown) {
+      console.error('Error getting launch context:', error);
+      throw new FHIRError(
+        'Failed to retrieve launch context', 
+        FHIRErrorType.API_ERROR, 
         error
       );
     }
@@ -313,67 +481,6 @@ class FHIRService {
   }
 
   /**
-   * Get the launch context information
-   * Available only after successful authentication with a launch token
-   */
-  getLaunchContext(): any {
-    if (!this.client) {
-      throw new FHIRError(
-        'FHIR client not initialized', 
-        FHIRErrorType.NOT_INITIALIZED
-      );
-    }
-    
-    try {
-      // Basic context information
-      const context: any = {
-        smart: (this.client as any).state?.tokenResponse || {}
-      };
-      
-      // Try to get patient context if available
-      try {
-        if (this.client.patient && this.client.patient.id) {
-          context.patient = this.client.patient.id;
-        }
-      } catch (e) {
-        console.warn('Patient context not available');
-      }
-      
-      // Try to get encounter context if available
-      try {
-        if (this.client.encounter && this.client.encounter.id) {
-          context.encounter = this.client.encounter.id;
-        }
-      } catch (e) {
-        console.warn('Encounter context not available');
-      }
-      
-      // Try to get user context if available
-      try {
-        if (this.client.user && this.client.user.id) {
-          context.user = this.client.user.id;
-        }
-      } catch (e) {
-        console.warn('User context not available');
-      }
-      
-      // Access any custom context properties that might be available
-      if ((this.client as any).state?.tokenResponse?.launch_response) {
-        context.launchResponse = (this.client as any).state.tokenResponse.launch_response;
-      }
-      
-      return context;
-    } catch (error) {
-      console.error('Error getting launch context:', error);
-      throw new FHIRError(
-        'Failed to retrieve launch context', 
-        FHIRErrorType.API_ERROR, 
-        error
-      );
-    }
-  }
-
-  /**
    * Reset API call trackers - useful for testing or error recovery
    */
   resetTrackers(): void {
@@ -451,4 +558,4 @@ class FHIRService {
 }
 
 // Export as singleton
-export default new FHIRService(); 
+export default FHIRService.getInstance(); 
