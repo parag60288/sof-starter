@@ -325,4 +325,17 @@ p {
   .patient-data {
     grid-template-columns: 1fr;
   }
+}
+
+.logo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+}
+
+.logo-left,
+.logo-right {
+  height: 60px;
+  object-fit: contain;
 } 

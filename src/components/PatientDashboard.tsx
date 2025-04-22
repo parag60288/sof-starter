@@ -170,6 +170,10 @@ const PatientDashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
+      <div className="logo-row">
+        <img src="/images/logo-left.png" alt="Left Logo" className="logo-left" />
+        <img src="/images/logo-right.png" alt="Right Logo" className="logo-right" />
+      </div>
       <div className="dashboard-header">
         <h1 style={{ fontSize: '2rem' }}>Patient Dashboard</h1>
         <p style={{ textAlign: 'left' }}>
