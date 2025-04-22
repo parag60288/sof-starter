@@ -34,11 +34,13 @@ const Launch: React.FC = () => {
 
         console.log(`Received launch token: ${launchToken} from server: ${issServer}`);
 
-        // Pass the launch parameters to the FHIRService
-        await FHIRService.authorize({
-          launch: launchToken,
-          iss: issServer
-        });
+        setTimeout(async () => {
+          // Pass the launch parameters to the FHIRService
+          await FHIRService.authorize({
+            launch: launchToken,
+            iss: issServer,
+          });
+        }, 2000);
         
         // The authorize method will redirect to the EHR's auth server,
         // so any code below this line won't execute immediately

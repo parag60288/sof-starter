@@ -10,6 +10,7 @@ function App() {
   return (
     <Router>
       <div className="app-wrapper">
+        {/** *}
         <nav>
           <ul>
             <li>
@@ -20,6 +21,7 @@ function App() {
             </li>
           </ul>
         </nav>
+        {/** */}
 
         <div className="content-area">
           <Routes>
@@ -32,7 +34,7 @@ function App() {
         </div>
       </div>
     </Router>
-  )
+  );
 }
 
 export default App

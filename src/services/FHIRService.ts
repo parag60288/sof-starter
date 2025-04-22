@@ -18,6 +18,8 @@ const apiCallTracker = {
   authProcessed: false
 };
 
+// TODO: fetch EHR credentials dynamically using apptoken passed through launch endpoint
+
 // Debounce time in milliseconds to prevent duplicate calls
 const DEBOUNCE_TIME = 300;
 

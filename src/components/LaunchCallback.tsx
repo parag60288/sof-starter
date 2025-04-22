@@ -75,7 +75,9 @@ const LaunchCallback: React.FC = () => {
         
         // Redirect to the patient dashboard on success, but only if component is still mounted
         if (isMounted.current) {
-          navigate('/patient-dashboard');
+          setTimeout(() => {
+            navigate("/patient-dashboard");
+          }, 2000);
         }
       } catch (error) {
         console.error('Authentication callback error:', error);

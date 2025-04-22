@@ -11,18 +11,21 @@ A React application starter template for building SMART-on-FHIR applications usi
 
 ### Installation
 
-1. Clone this repository
+a. Clone this repository
+
 ```bash
 git clone [repository URL]
 cd sof-starter
 ```
 
-2. Install dependencies
+b. Install dependencies
+
 ```bash
 npm install
 ```
 
-3. Configure environment variables
+c. Configure environment variables
+
 ```bash
 # Copy the example environment file
 cp .env.example .env
@@ -33,6 +36,7 @@ You can edit the `.env` file to customize your application settings, including y
 ### Development
 
 Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -44,11 +48,13 @@ The application will be available at [https://localhost:5000](https://localhost:
 ### Building for Production
 
 Create a production build:
+
 ```bash
 npm run build
 ```
 
 Preview the production build:
+
 ```bash
 npm run preview
 ```
@@ -71,10 +77,11 @@ The application supports two launch scenarios:
 1. **EHR Launch**: When launched from within an EHR system (like Epic), the app receives a launch token via the `/launch` endpoint. This allows the app to access context information about the current patient and user session.
 
    Example EHR launch URL:
-   ```
+
+   ```http
    https://localhost:5000/launch?iss=https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4&launch=xyz123
    ```
-   
+
    The app captures the `launch` token and `iss` (FHIR server URL) parameters and passes them to the FHIR authorization process.
 
 2. **Standalone Launch**: When launched directly from the app's home page, it initiates a standalone launch without context.
@@ -94,6 +101,7 @@ This implementation follows security best practices for SMART-on-FHIR applicatio
 ### FHIR Endpoints
 
 The application uses the following FHIR resources:
+
 - Patient: To retrieve patient demographics
 - Condition: To retrieve patient conditions/problems
 - MedicationRequest: To retrieve patient medications
@@ -122,8 +130,8 @@ The certificates are generated automatically when you run the development server
 | VITE_APP_TITLE | Application title shown in the browser tab | SMART-on-FHIR Starter |
 | VITE_FHIR_CLIENT_ID | Your Epic client ID | your-client-id |
 | VITE_FHIR_SCOPE | OAuth scopes for Epic | launch/patient patient/*.read |
-| VITE_FHIR_REDIRECT_URI | OAuth redirect URI | https://localhost:5000/launch-callback |
-| VITE_FHIR_ISS | Epic FHIR server URL | https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4 |
+| VITE_FHIR_REDIRECT_URI | OAuth redirect URI | <https://localhost:5000/launch-callback> |
+| VITE_FHIR_ISS | Epic FHIR server URL | <https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4> |
 
 ## Dependencies
 
@@ -137,7 +145,7 @@ Key dependencies for this project include:
 
 ## Project Structure
 
-```
+```sh
 /
 ├── public/            # Static assets
 ├── src/
@@ -161,6 +169,7 @@ Key dependencies for this project include:
 ## Error Handling
 
 The application implements robust error handling for common FHIR client issues:
+
 - Authentication failures
 - Network connectivity issues
 - Missing or malformed API responses

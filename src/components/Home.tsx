@@ -32,13 +32,14 @@ const Home: React.FC = () => {
     <div className="app-container">
       <h1>SMART-on-FHIR App Running</h1>
       <p>Your SMART-on-FHIR application is set up and running successfully.</p>
-      
+
       {error && (
         <div className="error-message">
           <p>{error}</p>
         </div>
       )}
-      
+
+      {/** *}
       <button 
         className="login-button" 
         onClick={handleLogin} 
@@ -64,6 +65,7 @@ const Home: React.FC = () => {
           </li>
         </ul>
       </div>
+      {/** */}
     </div>
   );
 };
