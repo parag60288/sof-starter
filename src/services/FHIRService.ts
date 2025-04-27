@@ -60,9 +60,20 @@ const getEhrCredentials = (apptoken: string | null): EhrCredential => {
     fhirService.displayError(error.message);
     throw error;
   }
-  return (ehrCredentials.credentials as Record<string, EhrCredential>)[
-    apptoken
-  ];
+
+  const credentials = (ehrCredentials.credentials as Record<string, EhrCredential>)[apptoken];
+  if (!credentials) {
+    const error = new FHIRError(
+      "Invalid apptoken provided",
+      FHIRErrorType.AUTH_ERROR
+    );
+    // Display error on screen
+    const fhirService = FHIRService.getInstance();
+    fhirService.displayError(error.message);
+    throw error;
+  }
+
+  return credentials;
 };
 
 // Base SMART on FHIR app configuration from environment variables
@@ -183,6 +194,14 @@ class FHIRService {
       const urlParams = new URLSearchParams(window.location.search);
       this.currentAppToken = urlParams.get("apptoken");
 
+      // Validate apptoken
+      if (!this.currentAppToken) {
+        throw new FHIRError(
+          "Apptoken is required for EHR authentication",
+          FHIRErrorType.AUTH_ERROR
+        );
+      }
+
       // Merge base config with any supplied launch parameters
       const clientConfig = {
         ...getFhirBaseConfig(this.currentAppToken),
@@ -191,7 +210,7 @@ class FHIRService {
       };
 
       console.log(`Authorizing with state key: ${this.currentStateKey}`);
-      console.log(`Using apptoken: ${this.currentAppToken || "default"}`);
+      console.log(`Using apptoken: ${this.currentAppToken}`);
       console.log(`Full config: ${JSON.stringify(clientConfig)}`);
 
       // Log the launch config for debugging
@@ -213,14 +232,9 @@ class FHIRService {
         );
       }
       this.client = result;
-    } catch (error: unknown) {
-      console.error("FHIR authorization error:", error);
-      const errorMessage =
-        error instanceof FHIRError
-          ? error.message
-          : "Failed to authorize with FHIR server";
-      this.displayError(errorMessage);
-      throw new FHIRError(errorMessage, FHIRErrorType.AUTH_ERROR, error);
+    } catch (error) {
+      console.error("Authorization error:", error);
+      throw error;
     }
   }
 

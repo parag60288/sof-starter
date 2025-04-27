@@ -9,6 +9,7 @@ const Launch: React.FC = () => {
   const [launchInfo, setLaunchInfo] = useState<{
     launch?: string;
     iss?: string;
+    apptoken?: string;
   }>({});
 
   useEffect(() => {
@@ -22,6 +23,15 @@ const Launch: React.FC = () => {
         const queryParams = new URLSearchParams(location.search);
         const launchToken = queryParams.get("launch");
         const issServer = queryParams.get("iss");
+        const appToken = queryParams.get("apptoken");
+
+        // Check for required apptoken
+        if (!appToken) {
+          throw new FHIRError(
+            "Missing required apptoken parameter",
+            FHIRErrorType.AUTH_ERROR
+          );
+        }
 
         if (!launchToken || !issServer) {
           throw new FHIRError(
@@ -33,10 +43,11 @@ const Launch: React.FC = () => {
         setLaunchInfo({
           launch: launchToken,
           iss: issServer,
+          apptoken: appToken,
         });
 
         console.log(
-          `Received launch token: ${launchToken} from server: ${issServer}`
+          `Received launch token: ${launchToken} from server: ${issServer} with apptoken: ${appToken}`
         );
 
         setTimeout(async () => {
@@ -58,8 +69,7 @@ const Launch: React.FC = () => {
           errorMsg = err.message;
         }
 
-        // setError(errorMsg); // FIXME: causing error hence disabl
-        setError(null);
+        setError(errorMsg);
         console.error("Launch error:", err);
       }
     };
