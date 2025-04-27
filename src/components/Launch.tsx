@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import FHIRService, { FHIRError, FHIRErrorType } from "../services/FHIRService";
+import ehrCredentials from "../configs/ehrCredentials.config.json";
+
+// Define the type for EHR credentials
+interface EhrCredential {
+  clientId: string;
+  clientSecret: string;
+  scope: string;
+  redirectUri: string;
+  iss: string;
+}
 
 const Launch: React.FC = () => {
   const location = useLocation();
@@ -29,6 +39,15 @@ const Launch: React.FC = () => {
         if (!appToken) {
           throw new FHIRError(
             "Missing required apptoken parameter",
+            FHIRErrorType.AUTH_ERROR
+          );
+        }
+
+        // Validate apptoken against ehrCredentials.config.json
+        const credentials = (ehrCredentials.credentials as Record<string, EhrCredential>)[appToken];
+        if (!credentials) {
+          throw new FHIRError(
+            `Invalid 'apptoken'. No matching ehr configuration found.`,
             FHIRErrorType.AUTH_ERROR
           );
         }
