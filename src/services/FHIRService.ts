@@ -37,6 +37,8 @@ const apiCallTracker = {
   getConditionsTimestamp: 0,
   getMedicationsInProgress: false,
   getMedicationsTimestamp: 0,
+  getInsuranceInProgress: false,
+  getInsuranceTimestamp: 0,
   authProcessed: false,
 };
 
@@ -510,6 +512,83 @@ class FHIRService {
       console.error("Failed to get medications:", error);
       throw new FHIRError(
         "Failed to fetch patient medications",
+        FHIRErrorType.API_ERROR,
+        error
+      );
+    }
+  }
+
+  /**
+   * Get patient's insurance coverage information
+   */
+  async getInsurance(): Promise<any> {
+    try {
+      // Prevent duplicate calls using debounce
+      const now = Date.now();
+      if (
+        apiCallTracker.getInsuranceInProgress ||
+        now - apiCallTracker.getInsuranceTimestamp < DEBOUNCE_TIME
+      ) {
+        console.log(
+          "getInsurance call in progress or recently completed, using cached result"
+        );
+        return await this.getCachedPromise("getInsurance");
+      }
+
+      apiCallTracker.getInsuranceInProgress = true;
+      apiCallTracker.getInsuranceTimestamp = now;
+
+      if (!this.client) {
+        throw new FHIRError(
+          "FHIR client not initialized",
+          FHIRErrorType.NOT_INITIALIZED
+        );
+      }
+
+      // Fetch Coverage resources for the patient
+      const result = await this.client.request(
+        `Coverage?patient=${this.client.patient.id}`
+      );
+      
+      // Also fetch related data - payers (Organization resources)
+      if (result.entry && result.entry.length > 0) {
+        try {
+          // Extract payer references from coverage entries
+          const payerReferences = result.entry
+            .map((entry: any) => entry.resource.payor)
+            .flat()
+            .filter((payor: any) => payor && payor.reference)
+            .map((payor: any) => payor.reference);
+          
+          // Fetch unique payer organizations
+          const uniqueReferences = [...new Set(payerReferences)] as string[];
+          
+          if (uniqueReferences.length > 0) {
+            // Fetch each payer organization and add to result
+            const payerPromises = uniqueReferences.map((reference: string) => 
+              this.client?.request(reference)
+            );
+            
+            if (payerPromises.length > 0) {
+              const payers = await Promise.all(payerPromises as Promise<any>[]);
+              result.payers = payers;
+            }
+          }
+        } catch (error) {
+          console.warn("Error fetching payer details:", error);
+          // Continue with the basic coverage info even if payer details fail
+        }
+      }
+      
+      this.cachePromiseResult("getInsurance", result);
+
+      apiCallTracker.getInsuranceInProgress = false;
+      return result;
+    } catch (error) {
+      apiCallTracker.getInsuranceInProgress = false;
+      console.error("Failed to get insurance information:", error);
+      throw new FHIRError(
+        "Failed to fetch patient insurance information",
         FHIRErrorType.API_ERROR,
         error
       );

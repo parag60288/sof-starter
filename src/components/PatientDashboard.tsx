@@ -14,17 +14,130 @@ interface ErrorState {
   type: FHIRErrorType;
 }
 
+interface InsuranceCoverage {
+  resource: {
+    id: string;
+    resourceType: 'Coverage';
+    status: string;
+    beneficiary: {
+      reference: string;
+      display?: string;
+    };
+    payor: Array<{
+      reference: string;
+      display?: string;
+    }>;
+    class?: Array<{
+      type: {
+        coding: Array<{
+          system: string;
+          code: string;
+          display: string;
+        }>;
+      };
+      value: string;
+      name?: string;
+    }>;
+    type?: {
+      coding: Array<{
+        system: string;
+        code: string;
+        display: string;
+      }>;
+    };
+    subscriberId?: string;
+    relationship?: {
+      coding: Array<{
+        system: string;
+        code: string;
+        display: string;
+      }>;
+    };
+    period?: {
+      start: string;
+      end?: string;
+    };
+  };
+}
+
+interface InsuranceResponse {
+  resourceType: string;
+  type: string;
+  total: number;
+  entry?: InsuranceCoverage[];
+  payers?: Record<string, unknown>[];
+}
+
+interface Condition {
+  resource: {
+    code?: {
+      coding?: Array<{
+        display?: string;
+      }>;
+    };
+    clinicalStatus?: {
+      coding?: Array<{
+        code?: string;
+      }>;
+    };
+  };
+}
+
+interface Medication {
+  resource: {
+    medicationCodeableConcept?: {
+      coding?: Array<{
+        display?: string;
+      }>;
+    };
+    medicationReference?: {
+      display?: string;
+    };
+  };
+}
+
+interface LaunchContextData {
+  smart: {
+    epicUserId?: string;
+    [key: string]: unknown;
+  };
+  patient?: string;
+  encounter?: string;
+  user?: string;
+  launchResponse?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 const PatientDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [patient, setPatient] = useState<PatientData | null>(null);
-  const [conditions, setConditions] = useState<any[]>([]);
-  const [medications, setMedications] = useState<any[]>([]);
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [insurance, setInsurance] = useState<InsuranceResponse | null>(null);
+  const [insuranceLoading, setInsuranceLoading] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<ErrorState | null>(null);
-  const [launchContext, setLaunchContext] = useState<any>(null);
+  const [launchContext, setLaunchContext] = useState<LaunchContextData | null>(null);
 
   // Ref to track if the component is mounted
   const isMounted = useRef(true);
+
+  // Format date to readable format
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Find payer name from the payers array
+  const getPayerName = (reference: string): string => {
+    if (!insurance?.payers) return 'Unknown Payer';
+    
+    const payer = insurance.payers.find(p => 
+      `${p.resourceType}/${p.id}` === reference.replace(/^.*\//, '')
+    );
+    
+    return (payer?.name as string) || 'Unknown Payer';
+  };
 
   useEffect(() => {
     setError(null);
@@ -48,7 +161,7 @@ const PatientDashboard: React.FC = () => {
         // Try to get launch context
         try {
           const context = FHIRService.getLaunchContext();
-          if (isMounted.current) setLaunchContext(context);
+          if (isMounted.current) setLaunchContext(context as unknown as LaunchContextData);
           console.log("Launch context retrieved:", context);
         } catch (e) {
           console.warn("Could not retrieve launch context:", e);
@@ -110,6 +223,29 @@ const PatientDashboard: React.FC = () => {
           console.error("Failed to load medications:", e);
           if (isMounted.current) setMedications([]);
         }
+        
+        // Get insurance information
+        try {
+          // Set insurance loading state to true
+          if (isMounted.current) setInsuranceLoading(true);
+          
+          const insuranceData = await FHIRService.getInsurance();
+          if (isMounted.current) {
+            setInsurance(insuranceData);
+            setInsuranceLoading(false);
+          }
+          console.log(
+            "Insurance loaded:",
+            insuranceData.entry?.length || 0,
+            "coverage plans"
+          );
+        } catch (e) {
+          console.error("Failed to load insurance:", e);
+          if (isMounted.current) {
+            setInsurance(null);
+            setInsuranceLoading(false);
+          }
+        }
       } catch (error) {
         console.error("Error loading patient data:", error);
 
@@ -141,21 +277,6 @@ const PatientDashboard: React.FC = () => {
       isMounted.current = false;
     };
   }, [navigate]);
-
-  const handleLogout = () => {
-    try {
-      console.log("Initiating logout process...");
-      // Call the FHIRService logout method
-      FHIRService.logout();
-      console.log("Logout successful, redirecting to home");
-      // Redirect to home page
-      navigate("/");
-    } catch (error) {
-      console.error("Error during logout:", error);
-      // If there's an error, we still want to redirect to home
-      navigate("/");
-    }
-  };
 
   if (loading) {
     return (
@@ -193,13 +314,13 @@ const PatientDashboard: React.FC = () => {
       <div className="dashboard-header">
         <h1 style={{ fontSize: "2rem" }}>Patient Dashboard</h1>
         <p style={{ textAlign: "left" }}>
-          {launchContext.smart.epicUserId && (
+          {launchContext?.smart.epicUserId && (
             <>
               <span>&#128100; {launchContext.smart.epicUserId}</span>
               <br />
             </>
           )}
-          {launchContext.smart.epicUserId ? (
+          {launchContext?.smart.epicUserId ? (
             <>
               <span>&#128100; {launchContext.smart.epicUserId}</span>
               <br />
@@ -234,14 +355,54 @@ const PatientDashboard: React.FC = () => {
         </div>
       ) /** */}
 
-      {patient && (
-        <div className="patient-info">
-          <h2>{patient.name}</h2>
-          <p>Gender: {patient.gender || "Not specified"}</p>
-          <p>Birth Date: {patient.birthDate || "Not specified"}</p>
-          <p>Patient ID: {patient.id}</p>
+      <div className="patient-info-container">
+        {patient && (
+          <div className="patient-info">
+            <h2>{patient.name}</h2>
+            <p>Gender: {patient.gender || "Not specified"}</p>
+            <p>Birth Date: {patient.birthDate || "Not specified"}</p>
+            <p>Patient ID: {patient.id}</p>
+          </div>
+        )}
+
+        <div className="insurance-summary">
+          {insuranceLoading ? (
+            <div className="insurance-loading">
+              <div className="insurance-spinner"></div>
+              <p>Loading insurance information...</p>
+            </div>
+          ) : !insurance || !insurance.entry || insurance.entry.length === 0 ? (
+            <div className="no-insurance-message">
+              <p>Insurance information not available.</p>
+            </div>
+          ) : (
+            <div className="insurance-details">
+              {(insurance.entry || []).slice(0, 1).map((coverage) => {
+                const resource = coverage.resource;
+                const payerName = resource.payor?.map(p => getPayerName(p.reference)).join(', ');
+                return (
+                  <div key={resource.id}>
+                    <h2>Insurance</h2>
+                    <p>Payer: {payerName || 'Unknown Payer'}</p>
+                    {resource.subscriberId && (
+                      <p>Member ID: {resource.subscriberId}</p>
+                    )}
+                    {resource.period && (
+                      <p>Period: {formatDate(resource.period.start)} - {resource.period.end ? formatDate(resource.period.end) : 'Current'}</p>
+                    )}
+                    {resource.status && (
+                      <p>Status: <span className={`status-text status-${resource.status}`}>{resource.status}</span></p>
+                    )}
+                    {insurance.entry && insurance.entry.length > 1 && (
+                      <p><i>Additional coverage plans available.</i></p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <div className="patient-data">
         <div className="data-section">

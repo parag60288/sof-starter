@@ -227,6 +227,112 @@ nav a:hover {
   text-align: left;
 }
 
+.patient-info-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.insurance-summary {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+
+.insurance-summary h2 {
+  margin-top: 0;
+  margin-bottom: 1.2rem;
+}
+
+.insurance-summary .insurance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.insurance-summary .insurance-card {
+  margin-bottom: 0;
+}
+
+.insurance-summary .detail-label {
+  flex: 0 0 80px;
+}
+
+.no-insurance-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  background-color: #f9f9f9;
+  border: 1px dashed #ddd;
+  border-radius: 6px;
+}
+
+.no-insurance-message p {
+  color: #666;
+  font-style: italic;
+  margin: 0;
+}
+
+.insurance-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.insurance-loading p {
+  color: #666;
+  margin-top: 10px;
+}
+
+.insurance-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.status-text {
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.status-active {
+  color: #0d904f;
+}
+
+.status-cancelled {
+  color: #b71c1c;
+}
+
+.status-draft {
+  color: #555;
+}
+
+.status-pending {
+  color: #f59e0b;
+}
+
+.insurance-details h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.insurance-details p {
+  margin-bottom: 0.5rem;
+}
+
 .launch-context {
   background-color: #f0f9ff;
   padding: 1.5rem;
@@ -295,8 +401,104 @@ nav a:hover {
 }
 
 .active-status {
-  color: #e53e3e;
+  color: #4caf50;
   font-weight: 500;
+  margin-left: 5px;
+}
+
+.view-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
+}
+
+.view-button:hover {
+  background-color: #1d4ed8;
+}
+
+.view-button:active {
+  background-color: #1e40af;
+}
+
+/* Insurance Section Styles */
+.insurance-section {
+  grid-column: 1 / -1;
+}
+
+.insurance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.insurance-card {
+  border: 1px solid #eaeaea;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.insurance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.insurance-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.insurance-details {
+  padding: 0.5rem 1rem;
+}
+
+.detail-row {
+  display: flex;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.detail-label {
+  flex: 0 0 100px;
+  font-weight: 500;
+  color: #666;
+}
+
+.detail-value {
+  flex: 1;
+  color: #333;
+}
+
+.plan-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.plan-item {
+  padding: 0.3rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9rem;
 }
 
 /* Typography */
@@ -323,6 +525,10 @@ p {
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .patient-data {
+    grid-template-columns: 1fr;
+  }
+  
+  .patient-info-container {
     grid-template-columns: 1fr;
   }
 }
