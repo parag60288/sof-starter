@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import mkcert from 'vite-plugin-mkcert'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import mkcert from "vite-plugin-mkcert";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,10 +9,10 @@ export default defineConfig({
     port: 5000,
     https: {
       // Using empty object here to use default settings
-    }
+    },
   },
   build: {
-    outDir: 'dist',
+    outDir: "dist",
   },
-  base: '/'
-})
+  base: "/",
+});

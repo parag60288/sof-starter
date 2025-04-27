@@ -125,13 +125,13 @@ The certificates are generated automatically when you run the development server
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| VITE_APP_TITLE | Application title shown in the browser tab | SMART-on-FHIR Starter |
-| VITE_FHIR_CLIENT_ID | Your Epic client ID | your-client-id |
-| VITE_FHIR_SCOPE | OAuth scopes for Epic | launch/patient patient/*.read |
-| VITE_FHIR_REDIRECT_URI | OAuth redirect URI | <https://localhost:5000/launch-callback> |
-| VITE_FHIR_ISS | Epic FHIR server URL | <https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4> |
+| Variable               | Description                                | Default                                                     |
+| ---------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| VITE_APP_TITLE         | Application title shown in the browser tab | SMART-on-FHIR Starter                                       |
+| VITE_FHIR_CLIENT_ID    | Your Epic client ID                        | your-client-id                                              |
+| VITE_FHIR_SCOPE        | OAuth scopes for Epic                      | launch/patient patient/\*.read                              |
+| VITE_FHIR_REDIRECT_URI | OAuth redirect URI                         | <https://localhost:5000/launch-callback>                    |
+| VITE_FHIR_ISS          | Epic FHIR server URL                       | <https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4> |
 
 ## Dependencies
 

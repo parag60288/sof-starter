@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import FHIRService, { FHIRError } from '../services/FHIRService';
+import React, { useState } from "react";
+import FHIRService, { FHIRError } from "../services/FHIRService";
 
 const Home: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -15,16 +15,16 @@ const Home: React.FC = () => {
       // The authorize method will redirect to Epic's login page
     } catch (err) {
       setLoading(false);
-      let errorMsg = 'Failed to connect to FHIR server';
-      
+      let errorMsg = "Failed to connect to FHIR server";
+
       if (err instanceof FHIRError) {
         errorMsg = err.message;
       } else if (err instanceof Error) {
         errorMsg = err.message;
       }
-      
+
       setError(errorMsg);
-      console.error('Authentication error:', err);
+      console.error("Authentication error:", err);
     }
   };
 
@@ -70,4 +70,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home; 
+export default Home;

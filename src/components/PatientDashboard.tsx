@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import FHIRService, { FHIRError, FHIRErrorType } from '../services/FHIRService';
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import FHIRService, { FHIRError, FHIRErrorType } from "../services/FHIRService";
 
 interface PatientData {
   name: string;
@@ -33,25 +33,25 @@ const PatientDashboard: React.FC = () => {
 
     const loadPatientData = async () => {
       try {
-        console.log('Loading patient dashboard data...');
+        console.log("Loading patient dashboard data...");
 
         // Check if authenticated
         const isAuth = await FHIRService.isAuthenticated();
         if (!isAuth) {
-          console.error('Not authenticated, redirecting to home');
-          if (isMounted.current) navigate('/');
+          console.error("Not authenticated, redirecting to home");
+          if (isMounted.current) navigate("/");
           return;
         }
 
-        console.log('Successfully authenticated, retrieving launch context');
+        console.log("Successfully authenticated, retrieving launch context");
 
         // Try to get launch context
         try {
           const context = FHIRService.getLaunchContext();
           if (isMounted.current) setLaunchContext(context);
-          console.log('Launch context retrieved:', context);
+          console.log("Launch context retrieved:", context);
         } catch (e) {
-          console.warn('Could not retrieve launch context:', e);
+          console.warn("Could not retrieve launch context:", e);
         }
 
         // Get patient data
@@ -59,25 +59,26 @@ const PatientDashboard: React.FC = () => {
           const patientData = await FHIRService.getPatient();
 
           // Extract patient info safely
-          const givenName = patientData.name?.[0]?.given?.join(' ') || '';
-          const familyName = patientData.name?.[0]?.family || '';
-          const patientName = givenName + (givenName && familyName ? ' ' : '') + familyName;
+          const givenName = patientData.name?.[0]?.given?.join(" ") || "";
+          const familyName = patientData.name?.[0]?.family || "";
+          const patientName =
+            givenName + (givenName && familyName ? " " : "") + familyName;
 
           if (isMounted.current) {
             setPatient({
-              name: patientName || 'Unknown Patient',
+              name: patientName || "Unknown Patient",
               gender: patientData.gender,
               birthDate: patientData.birthDate,
-              id: patientData.id
+              id: patientData.id,
             });
           }
-          console.log('Patient data loaded:', patientData.id);
+          console.log("Patient data loaded:", patientData.id);
         } catch (e) {
-          console.error('Failed to load patient data:', e);
+          console.error("Failed to load patient data:", e);
           if (isMounted.current) {
             setPatient({
-              name: 'Unknown Patient',
-              id: 'unknown'
+              name: "Unknown Patient",
+              id: "unknown",
             });
           }
         }
@@ -86,9 +87,13 @@ const PatientDashboard: React.FC = () => {
         try {
           const conditionsData = await FHIRService.getConditions();
           if (isMounted.current) setConditions(conditionsData.entry || []);
-          console.log('Conditions loaded:', conditionsData.entry?.length || 0, 'conditions');
+          console.log(
+            "Conditions loaded:",
+            conditionsData.entry?.length || 0,
+            "conditions"
+          );
         } catch (e) {
-          console.error('Failed to load conditions:', e);
+          console.error("Failed to load conditions:", e);
           if (isMounted.current) setConditions([]);
         }
 
@@ -96,27 +101,30 @@ const PatientDashboard: React.FC = () => {
         try {
           const medicationsData = await FHIRService.getMedications();
           if (isMounted.current) setMedications(medicationsData.entry || []);
-          console.log('Medications loaded:', medicationsData.entry?.length || 0, 'medications');
+          console.log(
+            "Medications loaded:",
+            medicationsData.entry?.length || 0,
+            "medications"
+          );
         } catch (e) {
-          console.error('Failed to load medications:', e);
+          console.error("Failed to load medications:", e);
           if (isMounted.current) setMedications([]);
         }
-
       } catch (error) {
-        console.error('Error loading patient data:', error);
+        console.error("Error loading patient data:", error);
 
         if (error instanceof FHIRError) {
           if (isMounted.current) {
             setError({
               message: error.message,
-              type: error.type
+              type: error.type,
             });
           }
         } else {
           if (isMounted.current) {
             setError({
-              message: 'An unexpected error occurred',
-              type: FHIRErrorType.UNKNOWN_ERROR
+              message: "An unexpected error occurred",
+              type: FHIRErrorType.UNKNOWN_ERROR,
             });
           }
         }
@@ -136,16 +144,16 @@ const PatientDashboard: React.FC = () => {
 
   const handleLogout = () => {
     try {
-      console.log('Initiating logout process...');
+      console.log("Initiating logout process...");
       // Call the FHIRService logout method
       FHIRService.logout();
-      console.log('Logout successful, redirecting to home');
+      console.log("Logout successful, redirecting to home");
       // Redirect to home page
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
       // If there's an error, we still want to redirect to home
-      navigate('/');
+      navigate("/");
     }
   };
 
@@ -163,7 +171,7 @@ const PatientDashboard: React.FC = () => {
       <div className="error-container">
         <h2>Error: {error.type}</h2>
         <p>{error.message}</p>
-        <button onClick={() => navigate('/')}>Go Home</button>
+        <button onClick={() => navigate("/")}>Go Home</button>
       </div>
     );
   }
@@ -171,19 +179,45 @@ const PatientDashboard: React.FC = () => {
   return (
     <div className="dashboard-container">
       <div className="logo-row">
-        <img src="/images/logo-left.png" alt="Left Logo" className="logo-left" />
-        <img src="/images/logo-right.png" alt="Right Logo" className="logo-right" />
+        <img
+          src="/images/logo-left.png"
+          alt="Left Logo"
+          className="logo-left"
+        />
+        <img
+          src="/images/logo-right.png"
+          alt="Right Logo"
+          className="logo-right"
+        />
       </div>
       <div className="dashboard-header">
-        <h1 style={{ fontSize: '2rem' }}>Patient Dashboard</h1>
-        <p style={{ textAlign: 'left' }}>
-          {launchContext.smart.epicUserId && <><span>&#128100; {launchContext.smart.epicUserId}</span><br /></>}
-          <span style={{fontSize: '0.95rem'}} title="Request initiated at:">&#9200; {new Date(Date.now() - 10000).toLocaleString()}</span>
+        <h1 style={{ fontSize: "2rem" }}>Patient Dashboard</h1>
+        <p style={{ textAlign: "left" }}>
+          {launchContext.smart.epicUserId && (
+            <>
+              <span>&#128100; {launchContext.smart.epicUserId}</span>
+              <br />
+            </>
+          )}
+          {launchContext.smart.epicUserId ? (
+            <>
+              <span>&#128100; {launchContext.smart.epicUserId}</span>
+              <br />
+            </>
+          ) : (
+            <>
+              <span>&#128100; ++1000</span>
+              <br />
+            </>
+          )}
+          <span style={{ fontSize: "0.95rem" }} title="Request initiated at:">
+            &#9200; {new Date(Date.now() - 10000).toLocaleString()}
+          </span>
         </p>
         {/* <button className="logout-button" onClick={handleLogout}>Logout</button> */}
       </div>
 
-      { /** * launchContext && (
+      {/** * launchContext && (
         <div className="launch-context">
           <h3>Launch Context</h3>
           <div className="context-details">
@@ -198,13 +232,13 @@ const PatientDashboard: React.FC = () => {
             )}
           </div>
         </div>
-      ) /** */ }
+      ) /** */}
 
       {patient && (
         <div className="patient-info">
           <h2>{patient.name}</h2>
-          <p>Gender: {patient.gender || 'Not specified'}</p>
-          <p>Birth Date: {patient.birthDate || 'Not specified'}</p>
+          <p>Gender: {patient.gender || "Not specified"}</p>
+          <p>Birth Date: {patient.birthDate || "Not specified"}</p>
           <p>Patient ID: {patient.id}</p>
         </div>
       )}
@@ -218,10 +252,12 @@ const PatientDashboard: React.FC = () => {
             <ul className="text-light">
               {conditions.map((condition, index) => (
                 <li key={index}>
-                  {condition.resource?.code?.coding?.[0]?.display || 'Unknown Condition'}
-                  {condition.resource?.clinicalStatus?.coding?.[0]?.code === 'active' &&
+                  {condition.resource?.code?.coding?.[0]?.display ||
+                    "Unknown Condition"}
+                  {condition.resource?.clinicalStatus?.coding?.[0]?.code ===
+                    "active" && (
                     <span className="active-status"> (Active)</span>
-                  }
+                  )}
                 </li>
               ))}
             </ul>
@@ -236,9 +272,10 @@ const PatientDashboard: React.FC = () => {
             <ul className="text-light">
               {medications.map((medication, index) => (
                 <li key={index}>
-                  {medication.resource?.medicationCodeableConcept?.coding?.[0]?.display ||
+                  {medication.resource?.medicationCodeableConcept?.coding?.[0]
+                    ?.display ||
                     medication.resource?.medicationReference?.display ||
-                    'Unknown Medication'}
+                    "Unknown Medication"}
                 </li>
               ))}
             </ul>
@@ -249,4 +286,4 @@ const PatientDashboard: React.FC = () => {
   );
 };
 
-export default PatientDashboard; 
+export default PatientDashboard;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const Test: React.FC = () => {
   return (
@@ -10,4 +10,4 @@ const Test: React.FC = () => {
   );
 };
 
-export default Test; 
+export default Test;

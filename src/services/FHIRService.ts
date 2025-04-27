@@ -1,7 +1,7 @@
-import FHIR from 'fhirclient';
-import Client from 'fhirclient/lib/Client';
-import { v4 as uuidv4 } from 'uuid';
-import ehrCredentials from '../configs/ehrCredentials.config.json';
+import FHIR from "fhirclient";
+import Client from "fhirclient/lib/Client";
+import { v4 as uuidv4 } from "uuid";
+import ehrCredentials from "../configs/ehrCredentials.config.json";
 
 // Define types for EHR credentials
 interface EhrCredential {
@@ -17,7 +17,7 @@ interface FhirClientState {
   serverUrl: string;
   tokenResponse: {
     access_token: string;
-    token_type: 'bearer' | 'Bearer';
+    token_type: "bearer" | "Bearer";
     expires_in: number;
     scope: string;
     launch_response?: Record<string, unknown>;
@@ -37,7 +37,7 @@ const apiCallTracker = {
   getConditionsTimestamp: 0,
   getMedicationsInProgress: false,
   getMedicationsTimestamp: 0,
-  authProcessed: false
+  authProcessed: false,
 };
 
 // Debounce time in milliseconds to prevent duplicate calls
@@ -52,7 +52,7 @@ interface ErrorDisplay {
 const getEhrCredentials = (apptoken: string | null): EhrCredential => {
   if (!apptoken) {
     const error = new FHIRError(
-      'Apptoken is required for EHR authentication',
+      "Apptoken is required for EHR authentication",
       FHIRErrorType.AUTH_ERROR
     );
     // Display error on screen
@@ -60,7 +60,9 @@ const getEhrCredentials = (apptoken: string | null): EhrCredential => {
     fhirService.displayError(error.message);
     throw error;
   }
-  return (ehrCredentials.credentials as Record<string, EhrCredential>)[apptoken] || ehrCredentials.credentials.default;
+  return (ehrCredentials.credentials as Record<string, EhrCredential>)[
+    apptoken
+  ];
 };
 
 // Base SMART on FHIR app configuration from environment variables
@@ -70,11 +72,11 @@ const getFhirBaseConfig = (apptoken: string | null): EhrCredential => {
 
 // Error types for better handling
 export enum FHIRErrorType {
-  AUTH_ERROR = 'Authentication Error',
-  CONNECTION_ERROR = 'Connection Error',
-  API_ERROR = 'API Error',
-  NOT_INITIALIZED = 'Client Not Initialized',
-  UNKNOWN_ERROR = 'Unknown Error'
+  AUTH_ERROR = "Authentication Error",
+  CONNECTION_ERROR = "Connection Error",
+  API_ERROR = "API Error",
+  NOT_INITIALIZED = "Client Not Initialized",
+  UNKNOWN_ERROR = "Unknown Error",
 }
 
 // Custom error class for FHIR-related errors
@@ -85,7 +87,7 @@ export class FHIRError extends Error {
     public originalError?: unknown
   ) {
     super(message);
-    this.name = 'FHIRError';
+    this.name = "FHIRError";
   }
 }
 
@@ -97,7 +99,7 @@ export interface LaunchParams {
 
 // Interface for launch context
 interface LaunchContext {
-  smart: FhirClientState['tokenResponse'];
+  smart: FhirClientState["tokenResponse"];
   patient?: string;
   encounter?: string;
   user?: string;
@@ -153,9 +155,10 @@ class FHIRService {
     if (this.errorDisplay) {
       this.errorDisplay.showError(message);
     } else {
-      console.error('Error display not configured:', message);
+      console.error("Error display not configured:", message);
       // Fallback to alert if no error display is configured
-      // alert(message);
+      alert(message);
+      // TODO: show error message on loading card
     }
   }
 
@@ -167,54 +170,57 @@ class FHIRService {
     try {
       // Prevent double execution in React StrictMode
       if (apiCallTracker.authProcessed) {
-        console.log('Authorization already processed, skipping duplicate call');
+        console.log("Authorization already processed, skipping duplicate call");
         return;
       }
-      
+
       apiCallTracker.authProcessed = true;
-      
+
       // Store the state key for this session - we'll need it during the callback
-      localStorage.setItem('fhir_state_key', this.currentStateKey);
-      
+      localStorage.setItem("fhir_state_key", this.currentStateKey);
+
       // Get apptoken from URL if present
       const urlParams = new URLSearchParams(window.location.search);
-      this.currentAppToken = urlParams.get('apptoken');
-      
+      this.currentAppToken = urlParams.get("apptoken");
+
       // Merge base config with any supplied launch parameters
       const clientConfig = {
         ...getFhirBaseConfig(this.currentAppToken),
         ...(launchParams || {}),
-        stateKey: this.currentStateKey
+        stateKey: this.currentStateKey,
       };
 
       console.log(`Authorizing with state key: ${this.currentStateKey}`);
-      console.log(`Using apptoken: ${this.currentAppToken || 'default'}`);
+      console.log(`Using apptoken: ${this.currentAppToken || "default"}`);
       console.log(`Full config: ${JSON.stringify(clientConfig)}`);
 
       // Log the launch config for debugging
       if (launchParams?.launch) {
         console.log(`Authorizing with launch token: ${launchParams.launch}`);
-        console.log(`Authorization server: ${launchParams.iss || getFhirBaseConfig(this.currentAppToken).iss}`);
+        console.log(
+          `Authorization server: ${
+            launchParams.iss || getFhirBaseConfig(this.currentAppToken).iss
+          }`
+        );
       }
 
       const result = await FHIR.oauth2.authorize(clientConfig);
       // Type guard to ensure we have a valid client
-      if (!result || typeof result === 'string') {
+      if (!result || typeof result === "string") {
         throw new FHIRError(
-          'Invalid client received during authorization', 
+          "Invalid client received during authorization",
           FHIRErrorType.AUTH_ERROR
         );
       }
       this.client = result;
     } catch (error: unknown) {
-      console.error('FHIR authorization error:', error);
-      const errorMessage = error instanceof FHIRError ? error.message : 'Failed to authorize with FHIR server';
+      console.error("FHIR authorization error:", error);
+      const errorMessage =
+        error instanceof FHIRError
+          ? error.message
+          : "Failed to authorize with FHIR server";
       this.displayError(errorMessage);
-      throw new FHIRError(
-        errorMessage,
-        FHIRErrorType.AUTH_ERROR, 
-        error
-      );
+      throw new FHIRError(errorMessage, FHIRErrorType.AUTH_ERROR, error);
     }
   }
 
@@ -225,61 +231,65 @@ class FHIRService {
   getLaunchContext(): LaunchContext {
     if (!this.client) {
       throw new FHIRError(
-        'FHIR client not initialized', 
+        "FHIR client not initialized",
         FHIRErrorType.NOT_INITIALIZED
       );
     }
-    
+
     try {
       // Basic context information
       const context: LaunchContext = {
         smart: {
-          access_token: this.client.state.tokenResponse?.access_token || '',
-          token_type: this.client.state.tokenResponse?.token_type as 'bearer' | 'Bearer' || 'bearer',
+          access_token: this.client.state.tokenResponse?.access_token || "",
+          token_type:
+            (this.client.state.tokenResponse?.token_type as
+              | "bearer"
+              | "Bearer") || "bearer",
           expires_in: this.client.state.tokenResponse?.expires_in || 0,
-          scope: this.client.state.tokenResponse?.scope || '',
-          launch_response: this.client.state.tokenResponse?.launch_response
-        }
+          scope: this.client.state.tokenResponse?.scope || "",
+          launch_response: this.client.state.tokenResponse?.launch_response,
+        },
       };
-      
+
       // Try to get patient context if available
       try {
         if (this.client.patient?.id) {
           context.patient = this.client.patient.id;
         }
       } catch (error: unknown) {
-        console.warn('Patient context not available:', error);
+        console.warn("Patient context not available:", error);
       }
-      
+
       // Try to get encounter context if available
       try {
         if (this.client.encounter?.id) {
           context.encounter = this.client.encounter.id;
         }
       } catch (error: unknown) {
-        console.warn('Encounter context not available:', error);
+        console.warn("Encounter context not available:", error);
       }
-      
+
       // Try to get user context if available
       try {
         if (this.client.user?.id) {
           context.user = this.client.user.id;
         }
       } catch (error: unknown) {
-        console.warn('User context not available:', error);
+        console.warn("User context not available:", error);
       }
-      
+
       // Access any custom context properties that might be available
       if (this.client.state.tokenResponse?.launch_response) {
-        context.launchResponse = this.client.state.tokenResponse.launch_response;
+        context.launchResponse =
+          this.client.state.tokenResponse.launch_response;
       }
-      
+
       return context;
     } catch (error: unknown) {
-      console.error('Error getting launch context:', error);
+      console.error("Error getting launch context:", error);
       throw new FHIRError(
-        'Failed to retrieve launch context', 
-        FHIRErrorType.API_ERROR, 
+        "Failed to retrieve launch context",
+        FHIRErrorType.API_ERROR,
         error
       );
     }
@@ -290,58 +300,67 @@ class FHIRService {
    */
   async isAuthenticated(): Promise<boolean> {
     try {
-      console.log('Checking authentication status...');
-      
+      console.log("Checking authentication status...");
+
       // Prevent duplicate calls using debounce
       const now = Date.now();
-      if (apiCallTracker.isAuthenticatedInProgress || 
-          (now - apiCallTracker.isAuthenticatedTimestamp < DEBOUNCE_TIME)) {
-        console.log('Authentication check in progress or recently completed, using cached result');
+      if (
+        apiCallTracker.isAuthenticatedInProgress ||
+        now - apiCallTracker.isAuthenticatedTimestamp < DEBOUNCE_TIME
+      ) {
+        console.log(
+          "Authentication check in progress or recently completed, using cached result"
+        );
         return !!this.client;
       }
-      
+
       apiCallTracker.isAuthenticatedInProgress = true;
       apiCallTracker.isAuthenticatedTimestamp = now;
-      
+
       // If we already have a client instance, use it
       if (this.client) {
-        console.log('Using existing client instance');
+        console.log("Using existing client instance");
         apiCallTracker.isAuthenticatedInProgress = false;
         return true;
       }
-      
+
       // Retrieve the state key that was used during authorization
-      const savedStateKey = localStorage.getItem('fhir_state_key') || this.currentStateKey;
+      const savedStateKey =
+        localStorage.getItem("fhir_state_key") || this.currentStateKey;
       console.log(`Using state key for authentication: ${savedStateKey}`);
-      
+
       // Pass the state key as part of the options object
       const result = await FHIR.oauth2.ready(
         // Cast to any to bypass TypeScript type checking for the stateKey property
         { stateKey: savedStateKey } as any
       );
-      
+
       // Type guard to ensure we have a valid client
-      if (!result || typeof result === 'string') {
-        console.error('Authentication failed: Invalid client result', result);
+      if (!result || typeof result === "string") {
+        console.error("Authentication failed: Invalid client result", result);
         apiCallTracker.isAuthenticatedInProgress = false;
         return false;
       }
-      
-      console.log('FHIR client successfully initialized');
+
+      console.log("FHIR client successfully initialized");
       this.client = result;
-      
+
       // Check if we have a valid patient context (for EHR launches)
       try {
         const patientId = this.client.patient.id;
-        console.log(`Authenticated with patient context. Patient ID: ${patientId}`);
+        console.log(
+          `Authenticated with patient context. Patient ID: ${patientId}`
+        );
       } catch (e) {
-        console.warn('No patient context available. This may be a standalone launch.');
+        console.warn(
+          "No patient context available. This may be a standalone launch."
+        );
       }
-      
+
       apiCallTracker.isAuthenticatedInProgress = false;
       return true;
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error("Authentication error:", error);
       apiCallTracker.isAuthenticatedInProgress = false;
       return false;
     }
@@ -354,25 +373,29 @@ class FHIRService {
     try {
       // Prevent duplicate calls using debounce
       const now = Date.now();
-      if (apiCallTracker.getPatientInProgress || 
-          (now - apiCallTracker.getPatientTimestamp < DEBOUNCE_TIME)) {
-        console.log('getPatient call in progress or recently completed, using cached result');
-        return await this.getCachedPromise('getPatient');
+      if (
+        apiCallTracker.getPatientInProgress ||
+        now - apiCallTracker.getPatientTimestamp < DEBOUNCE_TIME
+      ) {
+        console.log(
+          "getPatient call in progress or recently completed, using cached result"
+        );
+        return await this.getCachedPromise("getPatient");
       }
-      
+
       apiCallTracker.getPatientInProgress = true;
       apiCallTracker.getPatientTimestamp = now;
-      
+
       if (!this.client) {
         throw new FHIRError(
-          'FHIR client not initialized', 
+          "FHIR client not initialized",
           FHIRErrorType.NOT_INITIALIZED
         );
       }
-      
+
       const result = await this.client.patient.read();
-      this.cachePromiseResult('getPatient', result);
-      
+      this.cachePromiseResult("getPatient", result);
+
       apiCallTracker.getPatientInProgress = false;
       return result;
     } catch (error) {
@@ -380,10 +403,10 @@ class FHIRService {
       if (error instanceof FHIRError) {
         throw error;
       }
-      console.error('Failed to get patient data:', error);
+      console.error("Failed to get patient data:", error);
       throw new FHIRError(
-        'Failed to get patient data', 
-        FHIRErrorType.API_ERROR, 
+        "Failed to get patient data",
+        FHIRErrorType.API_ERROR,
         error
       );
     }
@@ -396,33 +419,39 @@ class FHIRService {
     try {
       // Prevent duplicate calls using debounce
       const now = Date.now();
-      if (apiCallTracker.getConditionsInProgress || 
-          (now - apiCallTracker.getConditionsTimestamp < DEBOUNCE_TIME)) {
-        console.log('getConditions call in progress or recently completed, using cached result');
-        return await this.getCachedPromise('getConditions');
+      if (
+        apiCallTracker.getConditionsInProgress ||
+        now - apiCallTracker.getConditionsTimestamp < DEBOUNCE_TIME
+      ) {
+        console.log(
+          "getConditions call in progress or recently completed, using cached result"
+        );
+        return await this.getCachedPromise("getConditions");
       }
-      
+
       apiCallTracker.getConditionsInProgress = true;
       apiCallTracker.getConditionsTimestamp = now;
-      
+
       if (!this.client) {
         throw new FHIRError(
-          'FHIR client not initialized', 
+          "FHIR client not initialized",
           FHIRErrorType.NOT_INITIALIZED
         );
       }
-      
-      const result = await this.client.request(`Condition?patient=${this.client.patient.id}`);
-      this.cachePromiseResult('getConditions', result);
-      
+
+      const result = await this.client.request(
+        `Condition?patient=${this.client.patient.id}`
+      );
+      this.cachePromiseResult("getConditions", result);
+
       apiCallTracker.getConditionsInProgress = false;
       return result;
     } catch (error) {
       apiCallTracker.getConditionsInProgress = false;
-      console.error('Failed to get conditions:', error);
+      console.error("Failed to get conditions:", error);
       throw new FHIRError(
-        'Failed to fetch patient conditions', 
-        FHIRErrorType.API_ERROR, 
+        "Failed to fetch patient conditions",
+        FHIRErrorType.API_ERROR,
         error
       );
     }
@@ -435,33 +464,39 @@ class FHIRService {
     try {
       // Prevent duplicate calls using debounce
       const now = Date.now();
-      if (apiCallTracker.getMedicationsInProgress || 
-          (now - apiCallTracker.getMedicationsTimestamp < DEBOUNCE_TIME)) {
-        console.log('getMedications call in progress or recently completed, using cached result');
-        return await this.getCachedPromise('getMedications');
+      if (
+        apiCallTracker.getMedicationsInProgress ||
+        now - apiCallTracker.getMedicationsTimestamp < DEBOUNCE_TIME
+      ) {
+        console.log(
+          "getMedications call in progress or recently completed, using cached result"
+        );
+        return await this.getCachedPromise("getMedications");
       }
-      
+
       apiCallTracker.getMedicationsInProgress = true;
       apiCallTracker.getMedicationsTimestamp = now;
-      
+
       if (!this.client) {
         throw new FHIRError(
-          'FHIR client not initialized', 
+          "FHIR client not initialized",
           FHIRErrorType.NOT_INITIALIZED
         );
       }
-      
-      const result = await this.client.request(`MedicationRequest?patient=${this.client.patient.id}`);
-      this.cachePromiseResult('getMedications', result);
-      
+
+      const result = await this.client.request(
+        `MedicationRequest?patient=${this.client.patient.id}`
+      );
+      this.cachePromiseResult("getMedications", result);
+
       apiCallTracker.getMedicationsInProgress = false;
       return result;
     } catch (error) {
       apiCallTracker.getMedicationsInProgress = false;
-      console.error('Failed to get medications:', error);
+      console.error("Failed to get medications:", error);
       throw new FHIRError(
-        'Failed to fetch patient medications', 
-        FHIRErrorType.API_ERROR, 
+        "Failed to fetch patient medications",
+        FHIRErrorType.API_ERROR,
         error
       );
     }
@@ -484,12 +519,12 @@ class FHIRService {
    * Reset API call trackers - useful for testing or error recovery
    */
   resetTrackers(): void {
-    Object.keys(apiCallTracker).forEach(key => {
-      if (key.includes('InProgress')) {
+    Object.keys(apiCallTracker).forEach((key) => {
+      if (key.includes("InProgress")) {
         (apiCallTracker as any)[key] = false;
-      } else if (key.includes('Timestamp')) {
+      } else if (key.includes("Timestamp")) {
         (apiCallTracker as any)[key] = 0;
-      } else if (key === 'authProcessed') {
+      } else if (key === "authProcessed") {
         apiCallTracker.authProcessed = false;
       }
     });
@@ -501,54 +536,59 @@ class FHIRService {
    */
   logout(): void {
     try {
-      console.log('Logging out...');
-      
+      console.log("Logging out...");
+
       // Clear the stored state key
-      localStorage.removeItem('fhir_state_key');
-      
+      localStorage.removeItem("fhir_state_key");
+
       // Clear any session/token storage used by FHIR.js client
       if (this.client) {
         try {
           // Try to access token-related data to revoke or clear if possible
           const tokenResponse = (this.client as any).state?.tokenResponse;
           if (tokenResponse) {
-            console.log('Clearing token data from client');
+            console.log("Clearing token data from client");
           }
         } catch (e) {
-          console.warn('Could not access token data', e);
+          console.warn("Could not access token data", e);
         }
       }
-      
+
       // Clear the client reference
       this.client = null;
-      
+
       // Reset all API trackers
       this.resetTrackers();
-      
+
       // Some FHIR servers support revoking tokens, but this isn't universally implemented
       // For now, just clear local state and token storage
-      
+
       // Clear session storage
       sessionStorage.clear();
-      
+
       // Clear any FHIR-related cookies or storage
       // This is a simple approach - adjust based on what your application needs
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('fhir') || key.startsWith('smart') || key.includes('token'))) {
+        if (
+          key &&
+          (key.startsWith("fhir") ||
+            key.startsWith("smart") ||
+            key.includes("token"))
+        ) {
           keysToRemove.push(key);
         }
       }
-      
-      keysToRemove.forEach(key => {
+
+      keysToRemove.forEach((key) => {
         console.log(`Removing storage key: ${key}`);
         localStorage.removeItem(key);
       });
-      
-      console.log('Logout complete');
+
+      console.log("Logout complete");
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
       // Still clear the client even if there's an error
       this.client = null;
       // Make sure trackers are reset
@@ -558,4 +598,4 @@ class FHIRService {
 }
 
 // Export as singleton
-export default FHIRService.getInstance(); 
+export default FHIRService.getInstance();
